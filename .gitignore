@@ -1,3 +1,7 @@
+
+#datasets (until I know how big they are)
+datasets/
+
 # History files
 .Rhistory
 .Rapp.history
