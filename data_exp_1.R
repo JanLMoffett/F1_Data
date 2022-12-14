@@ -4,6 +4,12 @@ library(tidyverse)
 library(devtools)
 library(lubridate)
 
+library(maps)
+library(mapdata)
+library(usmap)
+library(rworldmap)
+library(sf)
+
 #dataviz code from my github
 source_url("https://raw.githubusercontent.com/JanLMoffett/datavizExtras/master/colorConstants.R")
 source_url("https://raw.githubusercontent.com/JanLMoffett/datavizExtras/master/extraThemes.R")
@@ -18,38 +24,17 @@ tbl_names <- c("circuits", "constructor_results", "constructor_standings",
                 "sprint_results", "status")
 
 #make into filepaths
-tbl_names <- paste0("datasets/", tbl_names, ".csv")
+tbl_paths <- paste0("datasets/", tbl_names, ".csv")
 
 #list to hold tables
-tbl_list <- list(circuits, 
-     constructor_results = NA,
-     constructor_standings = NA,
-     constructors = NA,
-     driver_standings = NA,
-     drivers = NA,
-     lap_times = NA,
-     pit_stops = NA,
-     qualifying = NA,
-     races = NA,
-     results = NA,
-     seasons = NA,
-     sprint_results = NA,
-     status = NA)
+tbl_list <- list()
+#read in data tables and save in list
+tbl_list <- sapply(tbl_paths, read.csv)
+
+#make table of metadata for data tables, to get an overview of the variables available 
+#and also which variables are primary keys
+names(tbl_list) <- tbl_names
 
 
 
-drv %>% pull(dob)
 
-drv <- drv %>% filter(year(dob) > 1980)
-
-drv <- drv %>% arrange(dob)
-
-drv %>% pull(code) %>% unique()
-
-keep_codes <- c("ALO", "HAM", "HUL", "RIC", "BOT", 
-                "VER", "MAG", "GIO", "SAI", "DEV", 
-                "GAS", "ALB", "FIT", "OCO", "LEC", 
-                "RUS", "STR", "MSC", "ZHO", "NOR", 
-                "TSU")
-
-drv %>% filter(code %in% keep_codes) %>% arrange(month(dob))
