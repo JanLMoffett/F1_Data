@@ -96,6 +96,9 @@ races.mnz <- tbl_list[["races"]] %>% filter(raceId == "1089")
 results.mnz <- tbl_list[["results"]] %>% filter(raceId == "1089")
 quali.mnz <- tbl_list[["qualifying"]] %>% filter(raceId == "1089")
 
+#everyone's lap times
+lap_times.mnz <- tbl_list[["lap_times"]] %>% filter(raceId == "1089")
+
 #write.csv(lap_times.ndv, "datasets/ndv_lap_times.csv")
 #write.csv(drivers.ndv, "datasets/ndv_drivers.csv")
 #write.csv(pit_stops.ndv, "datasets/ndv_pit_stops.csv")
@@ -104,4 +107,5 @@ quali.mnz <- tbl_list[["qualifying"]] %>% filter(raceId == "1089")
 #write.csv(results.ndv, "datasets/ndv_results.csv")
 #write.csv(results.mnz, "datasets/ndv_monza_results.csv")
 #write.csv(qualifying.mnz, "datasets/ndv_monza_qualifying.csv")
+#write.csv(lap_times.mnz, "datasets/ndv_monza_lap_times.csv")
 
