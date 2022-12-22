@@ -96,6 +96,7 @@ milliseconds_to_time <- function(ms){
 #ricciardo retiring
 #finishing under the safety car
 
+class(lt.ndv$lap)
 #creating a variable to easily filter laps where time is affected
 lt.ndv <- lt.ndv %>% 
   mutate(lap_type = case_when(
@@ -103,7 +104,7 @@ lt.ndv <- lt.ndv %>%
     lap == 12 ~ "Virtual Safety Car",
     lap == 19 ~ "Pit Stop In",
     lap == 20 ~ "Pit Stop Out",
-    lap > 47 ~ "Safety Car",
+    lap >= 47 ~ "Safety Car",
     TRUE ~ "Regular"
   ))
 
@@ -254,98 +255,126 @@ ggplot(lt.ndv) + monza_theme +
 
 #range of times in regular laps:
 summary(lt.ndv %>% filter(lap_type == "Regular") %>% pull(milliseconds))
-#Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#86624   87046   87328   87892   87560  111564 
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#86624   87019   87326   87328   87535   88416 
 
+milliseconds_to_time(86624)
+#"1:26.624"
+milliseconds_to_time(88416)
+#"1:28.416"
 
-time_labels <- c("1:25.000",
-                 "1:25.250",
-                 "1:25.500",
-                 "1:25.750",
-                 "1:26.000",
-                 "1:26.250",
-                 "1:26.500",
+time_labels <- c("1:26.500",
                  "1:26.750",
                  "1:27.000",
                  "1:27.250",
                  "1:27.500",
-                 "1:27.750")
+                 "1:27.750",
+                 "1:28.000",
+                 "1:28.250",
+                 "1:28.500")
 
-time_label_x_values <- c(time_to_milliseconds("1:25.000"),
-                         time_to_milliseconds("1:25.250"),
-                         time_to_milliseconds("1:25.500"),
-                         time_to_milliseconds("1:25.750"),
-                         time_to_milliseconds("1:26.000"),
-                         time_to_milliseconds("1:26.250"),
-                         time_to_milliseconds("1:26.500"),
+time_label_x_values <- c(time_to_milliseconds("1:26.500"),
                          time_to_milliseconds("1:26.750"),
                          time_to_milliseconds("1:27.000"),
                          time_to_milliseconds("1:27.250"),
                          time_to_milliseconds("1:27.500"),
-                         time_to_milliseconds("1:27.750"))
+                         time_to_milliseconds("1:27.750"),
+                         time_to_milliseconds("1:28.000"),
+                         time_to_milliseconds("1:28.250"),
+                         time_to_milliseconds("1:28.500"))
 
 fl <- lt.ndv %>% filter(lap == 41)
 
-ggplot(lt.ndv %>% filter(lap_type == "Regular")) + monza_theme +
-  geom_segment(aes(x = 0, xend = milliseconds,
-                   y = lap, yend = lap)) + 
+#changing non-regular laps to NA values in new column to
+#make line breaks in graph
+lt.ndv <- lt.ndv %>% 
+  mutate(regular_milliseconds = ifelse(
+    lap_type == "Regular",
+    milliseconds,
+    NA
+  ))
+
+
+monza_dk_theme <- theme(
   
-  coord_cartesian(xlim = c(time_to_milliseconds("1:25.000"), time_to_milliseconds("1:28.000")),
-                  ylim = c(60, 1),
-                  expand = 0) + 
+  line = element_line(lineend = "square"),
+  rect = element_rect(fill = jmbn["hunter"]),
+  text = element_text(family = "sans", color = oj["blue1"], size = 3, hjust = 0.5, vjust = 0.5),
+  title = element_text(family = "sans", color = oj["blue1"], size = 10, hjust = 0.5, vjust = 0),
   
-  #"Lap"
-  annotate("text", x = -3000, y = -1, hjust = 1, label = "Lap") +
+  axis.title = element_blank(),
+  axis.text = element_blank(),
+  axis.ticks = element_blank(),
+  axis.line = element_blank(),
   
-  #lap ticks
-  annotate("segment", y = seq(1,53,2), yend = seq(1,53,2), 
-           x = -1800, xend = 0, color = oj["blue5"]) + 
+  panel.background = element_rect(fill = jmbn["hunter"]),
+  panel.border = element_blank(),#element_rect(fill = NA, color = "gray70", size = 1),
+  panel.spacing = unit(10, "pt"),
+  panel.grid.major = element_blank(),#element_line(color = "gray90", size = 0.5),
+  panel.grid.minor = element_blank(),#element_line(color = "white", size = 0.5),
   
-  #lap labels
-  annotate("text", x = rep.int(-3000, 27), y = seq(1,53,2), label = seq(1,53,2), hjust = 1) + 
+  plot.background = element_rect(fill = jmbn["hunter"]),
+  plot.title = element_text(family = "sans", face = "bold", size = 18, color = "white", hjust = 0.5),
+  plot.subtitle = element_text(family = "sans", face = "italic", size = 12, color = "gray85", hjust = 0.5),
+  #plot.caption = element_text(),
+  plot.margin = margin(10,30,20,10),
+  plot.tag = element_text(color = "white"),
+  plot.tag.position = c(0.95,1),
   
-  #Fastest lap horizontal line segment
-  annotate("segment", x = 0, 
-           xend = lt.ndv %>% filter(lap == 41) %>% pull(milliseconds),
-           y = 41, yend = 41, color = oj["orange5"]) +
+  strip.background = element_rect(fill = "gray90", color = "gray70", size = 1),
+  strip.text = element_text(color = oj["blueK"]),
+  
+  complete = FALSE,
+  validate = TRUE
+)
+
+ggplot(lt.ndv) + monza_dk_theme +
+  coord_cartesian(xlim = c(time_to_milliseconds("1:26.4"), time_to_milliseconds("1:28.6")),
+                  ylim = c(56, 1),
+                  expand = 1) +
+  labs(title = "Nyck De Vries Lap Times (Detail)",
+       subtitle = "Gran Premio D'Italia 2022",
+       caption = "Jan Moffett | github.com/JanLMoffett | Data Source: Ergast API") + 
+  
+  #vertical time markers
+  geom_vline(xintercept = time_label_x_values, color = jmbn["turquoise"], alpha = 0.5) +
   
   #Fastest lap vertical line marker
   geom_vline(xintercept = fl$milliseconds, 
-             color = oj["orange5"], 
-             linetype = 1) + 
+             color = jmbn["highlighter"], 
+             linetype = 1) +
   
-  #virtual safety car horizontal line segment
-  annotate("segment", x = 0, xend = lt.ndv$milliseconds[which(lt.ndv$lap == 12)],
-           y = 12, yend = 12, color = oj["blue3"]) + 
+  #horizontal lap markers
+  geom_hline(yintercept = 1:53, color = jmbn["turf"]) +
+  #special lap markers
+  geom_hline(yintercept = 1, color = "grey") +
+  geom_hline(yintercept = c(12,47:53), color = jmbn["rose"]) +
+  geom_hline(yintercept = 19:20, color = jmbn["periwinkle"]) +
+  geom_hline(yintercept = 41, color = jmbn["highlighter"]) +
+  #special lap labels 
   
-  #track limits warning horizontal line segment
-  annotate("segment", x = 0, xend = lt.ndv$milliseconds[which(lt.ndv$lap == 19)],
-           y = 19, yend = 19, color = oj["blue3"]) + 
+  #rec under lap labels
+  annotate("rect", xmin = 86350, xmax = 86500,
+           ymin = -2, ymax = 54, fill = jmbn["hunter"], alpha = 0.5) + 
   
-  #pit stop horizontal line segment
-  annotate("segment", x = 0, xend = lt.ndv$milliseconds[which(lt.ndv$lap == 20)],
-           y = 20, yend = 20, color = oj["blue3"]) + 
-  
-  #Safety car horizontal line segments
-  annotate("segment", x = rep.int(0, length(47:53)), 
-           xend = lt.ndv$milliseconds[which(lt.ndv$lap %in% 47:53)],
-           y = 47:53, yend = 47:53, color = oj["blue2"]) +
-  
-  #Fastest lap label
-  annotate("text", 
-           x = fl$milliseconds + 2500, 
-           y = 41, 
-           label = paste0("Fastest Lap: ", fl$time), 
-           hjust = 0, 
-           color = oj["orange5"]) + 
-  
-  #vertical time markers
-  geom_vline(xintercept = time_label_x_values, color = oj["blue1"]) +
+  #"Lap"
+  annotate("text", x = 86455, y = -1, label = "Lap", 
+           hjust = 1, color = jmbn["turquoise"], size = 3.5) +
+  #lap labels
+  annotate("text", x = rep.int(86455, 27), y = seq(1,53,2), 
+           label = seq(1,53,2), hjust = 1, color = "white", size = 3.5) + 
   
   #bottom axis
-  geom_hline(yintercept = 55, color = oj["blue5"]) + 
-  annotate("text", x = time_label_x_values, y = rep.int(57,12), 
+  geom_hline(yintercept = 55, color = jmbn["turquoise"]) + 
+  annotate("text", x = time_label_x_values, y = rep.int(57,9), 
            label = time_labels, 
-           color = "black",
-           hjust = 0, size = 2)
+           color = "white",
+           hjust = 0, size = 2.8) + 
+  
+  #left axis
+  geom_vline(xintercept = 86500, color = jmbn["turquoise"]) +
+  
+  geom_point(aes(x = regular_milliseconds, y = lap), color = "white") + 
+  geom_line(aes(x = regular_milliseconds, y = lap), 
+            orientation = "y", color = "white")
                   

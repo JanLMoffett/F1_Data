@@ -2,21 +2,13 @@
 #load packages
 library(devtools)
 library(lubridate)
-
-library(maps)
-library(mapdata)
-library(usmap)
-library(rworldmap)
-library(sf)
-
 library(tidyverse)
 
-#dataviz code from my github
-source_url("https://raw.githubusercontent.com/JanLMoffett/datavizExtras/master/colorConstants.R")
-source_url("https://raw.githubusercontent.com/JanLMoffett/datavizExtras/master/extraThemes.R")
-source_url("https://raw.githubusercontent.com/JanLMoffett/datavizExtras/master/datavizExtras.R")
-
 #setwd("~/Projects/GithubRepositories/F1_Data")
+
+#data from the ergast api via kaggle
+# # # # # # # # # # # # # # # # # # #
+ # # # # # # # # # # # # # # # # # # #
 
 #names of tables in dataset:
 tbl_names <- c("circuits", "constructor_results", "constructor_standings", 
@@ -108,4 +100,25 @@ lap_times.mnz <- tbl_list[["lap_times"]] %>% filter(raceId == "1089")
 #write.csv(results.mnz, "datasets/ndv_monza_results.csv")
 #write.csv(qualifying.mnz, "datasets/ndv_monza_qualifying.csv")
 #write.csv(lap_times.mnz, "datasets/ndv_monza_lap_times.csv")
+
+
+#each driver's best lap at Monza, ranked
+drivers <- read.csv("datasets/drivers.csv")
+
+names(lap_times.mnz)
+lt <- left_join(lap_times.mnz, drivers, by = "driverId")
+
+names(lt)
+#[1] "X"            "raceId"       "driverId"     "lap"         
+#[5] "position"     "time"         "milliseconds" "driverRef"   
+#[9] "number"       "code"         "forename"     "surname"     
+#[13] "dob"          "nationality"  "url"
+
+#each driver's best lap in the race, sorted
+best_laps <- lt %>% group_by(driverId) %>% arrange(driverId, milliseconds) %>%
+  slice_head(n = 1) %>% arrange(milliseconds)
+
+#write.csv(best_laps, "datasets/ndv_monza_best_laps.csv")
+
+
 
