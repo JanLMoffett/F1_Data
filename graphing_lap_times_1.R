@@ -307,6 +307,8 @@ monza_dk_theme <- theme(
   axis.ticks = element_blank(),
   axis.line = element_blank(),
   
+  legend.position = "none",
+  
   panel.background = element_rect(fill = jmbn["hunter"]),
   panel.border = element_blank(),#element_rect(fill = NA, color = "gray70", size = 1),
   panel.spacing = unit(10, "pt"),
@@ -328,13 +330,16 @@ monza_dk_theme <- theme(
   validate = TRUE
 )
 
+monza_subtitle <- "Monza Circuit, Gran Premio D'Italia 2022"
+my_f1_caption <- "Jan Moffett | github.com/JanLMoffett | Data Source: Ergast API"
+
 ggplot(lt.ndv) + monza_dk_theme +
   coord_cartesian(xlim = c(time_to_milliseconds("1:26.4"), time_to_milliseconds("1:28.6")),
                   ylim = c(56, 1),
                   expand = 1) +
   labs(title = "Nyck De Vries Lap Times (Detail)",
-       subtitle = "Gran Premio D'Italia 2022",
-       caption = "Jan Moffett | github.com/JanLMoffett | Data Source: Ergast API") + 
+       subtitle = monza_subtitle,
+       caption = my_f1_caption) + 
   
   #vertical time markers
   geom_vline(xintercept = time_label_x_values, color = jmbn["turquoise"], alpha = 0.5) +
@@ -377,4 +382,165 @@ ggplot(lt.ndv) + monza_dk_theme +
   geom_point(aes(x = regular_milliseconds, y = lap), color = "white") + 
   geom_line(aes(x = regular_milliseconds, y = lap), 
             orientation = "y", color = "white")
-                  
+
+
+names(lt.mnz)
+
+#[1] "raceId"       "driverId"     "lap"          "position"    
+#[5] "time"         "milliseconds" "cum_ms"       "driverRef"   
+#[9] "number"       "code"         "forename"     "surname"     
+#[13] "dob"          "nationality"  "url"          "timestamp"
+
+#want to make a plot where each driver's whole race is one horizontal line,
+#with vertical markers for each lap
+
+#chronological timestamps for end of each lap
+lt.mnz <- lt.mnz %>% select(-all_of(c("X.1", "X"))) %>%
+  mutate(timestamp = milliseconds_to_time(cum_ms))
+  
+#need a table of drivers in the race
+dr.mnz <- lt.mnz %>% group_by(driverId) %>%
+  summarize(
+    
+    driver_code = first(code),
+    driver_name = paste0(first(forename), " ", first(surname)),
+    total_milliseconds = last(cum_ms),
+    finish_timestamp = last(timestamp)
+    )
+
+z <- lt.mnz %>% select(driverId, lap, milliseconds)
+z <- pivot_wider(z, names_from = lap, names_prefix = "lap_", values_from = milliseconds)
+
+dr.mnz <- dr.mnz %>% left_join(z, by = "driverId") %>%
+  left_join(results.mnz, by = "driverId")
+
+dr.mnz <- dr.mnz %>% arrange(positionOrder)
+dr.mnz <- dr.mnz %>% mutate(finish_position = as.numeric(position))
+dr.mnz <- dr.mnz %>% mutate(finish_position2 = ifelse(is.na(finish_position), "DNF", as.character(finish_position)))
+  
+names(dr.mnz)
+#[1] "driverId"           "driver_code"        "driver_name"       
+#[4] "total_milliseconds" "finish_timestamp"   "lap_1" ... 
+#[57] "lap_52"             "lap_53"             "X"                  "resultId"          
+#[61] "raceId"             "constructorId"      "number"             "grid"              
+#[65] "position"           "positionText"       "positionOrder"      "points"            
+#[69] "laps"               "time"               "milliseconds"       "fastestLap"        
+#[73] "rank"               "fastestLapTime"     "fastestLapSpeed"    "statusId"
+
+ggplot(dr.mnz) + #monza_dk_theme +
+  coord_cartesian(xlim = c(-300000, 5000000), ylim = c(20,1)) +
+  #horizontal race timelines
+  geom_segment(aes(x = 0, xend = total_milliseconds, 
+                   y = positionOrder, yend = positionOrder)) + 
+  #vertical lap time markers
+  geom_segment(aes(x = lap_1, xend = lap_1,
+                   y = positionOrder-.25, yend = positionOrder +0.25)) +
+  #driver code labels
+  annotate("text", x = -2500, y = dr.mnz$positionOrder, hjust = 1,
+           label = paste0(dr.mnz$finish_position2, " ", dr.mnz$driver_code),
+           size = 3)
+
+#this isn't quite how the data should be arranged
+
+names(lt.mnz)
+#i just need to join results to lap times
+lt2 <- left_join(lt.mnz, results.mnz, by = "driverId")
+
+names(lt2)
+lt2 <- lt2 %>% rename(raceId = raceId.x,
+                      lap_position = position.x,
+                      lap_time = time.x,
+                      lap_milliseconds = milliseconds.x,
+                      driver_number = number.x,
+                      finish_position = position.y,
+                      finish_order = positionOrder,
+                      total_laps = laps,
+                      finish_time = time.y,
+                      finish_milliseconds = milliseconds.y,
+                      fastest_lap_rank = rank) %>%
+  select(-all_of(c("X", "raceId.y", "number.y")))
+
+#assign colors for each team/driver
+team_colors <- c(
+  alp_pink <- hex("#ff85dc"),
+  ryl_blue <- hex("#0000FF"),
+  rb_navy <- hex("#001861"),
+  rb_orange <- hex("#ff4400"),
+  mer_cyan <- hex("#00ffff"),
+  mer_slvr <- hex("#a6a6a6"),
+  fer_red <- hex("#e80000"),
+  fer_ylw <- hex("#e6ff00"),
+  mcl_org <- hex("#ffa200"),
+  ast_grn <- hex("#00a5a8"))
+
+names(lt2)
+
+lt2 <- lt2 %>% mutate(
+  tm_color_1 = case_when(
+    constructorId == 131 ~ mer_slvr,
+    constructorId == 214 ~ alp_pink,
+    constructorId == 117 ~ ast_grn,
+    constructorId == 9 ~ rb_navy,
+    constructorId == 1 ~ mcl_org,
+    constructorId == 51 ~ "white",
+    constructorId == 210 ~ "white",
+    constructorId == 6 ~ fer_red,
+    constructorId == 213 ~ rb_navy,
+    constructorId == 3 ~ ryl_blue,
+    TRUE ~ "white")) %>%
+  mutate(
+    tm_color_2 = case_when(
+      constructorId == 131 ~ mer_cyan,
+      constructorId == 214 ~ ryl_blue,
+      constructorId == 117 ~ "black",
+      constructorId == 9 ~ rb_navy,
+      constructorId == 1 ~ "white",
+      constructorId == 51 ~ "black",
+      constructorId == 210 ~ fer_red,
+      constructorId == 6 ~ fer_ylw,
+      constructorId == 213 ~ "white",
+      constructorId == 3 ~ mer_cyan,
+      TRUE ~ "black"
+    ))
+
+tm_color_1 = c(
+  "131" = mer_slvr,
+  "214" = alp_pink,
+  "117" = ast_grn,
+  "9" = rb_navy,
+  "1" = mcl_org,
+  "51" = "white",
+  "210" = "white",
+  "6" = fer_red,
+  "213" = rb_navy,
+  "3" = ryl_blue)
+
+tm_color_2 = c(
+  "131" = mer_cyan,
+  "214" = ryl_blue,
+  "117" = "black",
+  "9" = rb_orange,
+  "1" = "white",
+  "51" = "black",
+  "210" = fer_red,
+  "6" = fer_ylw,
+  "213" = "white",
+  "3" = mer_cyan)
+
+ggplot(lt2) + monza_dk_theme + 
+  coord_cartesian(xlim = c(0,54), ylim = c(21,0), expand = 0) +
+  
+  geom_rect(aes(xmin = lap - 0.5, xmax = lap + 0.5,
+                ymin = lap_position - 0.5, ymax = lap_position + 0.5,
+                fill = factor(constructorId),
+                color = factor(constructorId))) + 
+  scale_fill_manual(values = tm_color_1) + 
+  scale_color_manual(values = tm_color_2) + 
+  geom_text(aes(x = lap, 
+                y = lap_position, 
+                label = driver_number,
+                color = factor(constructorId)),
+            size = 2)
+
+
+
