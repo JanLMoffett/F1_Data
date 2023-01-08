@@ -294,6 +294,10 @@ lt.ndv <- lt.ndv %>%
     NA
   ))
 
+#adding a tire type variable to add color to lines
+lt.ndv <- lt.ndv %>% 
+  mutate(tire_type = ifelse(lap > 19, "medium", "soft"))
+
 
 monza_dk_theme <- theme(
   
@@ -330,8 +334,10 @@ monza_dk_theme <- theme(
   validate = TRUE
 )
 
-monza_subtitle <- "Monza Circuit, Gran Premio D'Italia 2022"
+monza_subtitle <- "Monza Circuit, Gran Premio D'Italia, 9/11/22"
 my_f1_caption <- "Jan Moffett | github.com/JanLMoffett | Data Source: Ergast API"
+
+special_lap_label_x = 88650
 
 ggplot(lt.ndv) + monza_dk_theme +
   coord_cartesian(xlim = c(time_to_milliseconds("1:26.4"), time_to_milliseconds("1:28.6")),
@@ -344,28 +350,34 @@ ggplot(lt.ndv) + monza_dk_theme +
   #vertical time markers
   geom_vline(xintercept = time_label_x_values, color = jmbn["turquoise"], alpha = 0.5) +
   
-  #Fastest lap vertical line marker
-  geom_vline(xintercept = fl$milliseconds, 
-             color = jmbn["highlighter"], 
-             linetype = 1) +
-  
   #horizontal lap markers
   geom_hline(yintercept = 1:53, color = jmbn["turf"]) +
   #special lap markers
-  geom_hline(yintercept = 1, color = "grey") +
-  geom_hline(yintercept = c(12,47:53), color = jmbn["rose"]) +
-  geom_hline(yintercept = 19:20, color = jmbn["periwinkle"]) +
-  geom_hline(yintercept = 41, color = jmbn["highlighter"]) +
-  #special lap labels 
+  geom_hline(yintercept = 1, color = "grey", linetype = 3) +
+  geom_hline(yintercept = c(12,47:53), color = jmbn["rose"], linetype = 3) +
+  geom_hline(yintercept = 19:20, color = jmbn["periwinkle"], linetype = 3) +
   
-  #rec under lap labels
+  #special lap labels 
+  annotate("text", x = special_lap_label_x, y = 1, color = "grey",
+           label = "Starting Lap", hjust = 1, size = 3.5) + 
+  annotate("text", x = special_lap_label_x, y = 12, color = jmbn["rose"],
+           label = "Virtual Safety Car", hjust = 1, size = 3.5) +
+  annotate("text", x = rep.int(special_lap_label_x, 2), y = c(19,20),
+           color = jmbn["periwinkle"], label = c("Pit In", "Pit Out"),
+           hjust = 1, size = 3.5) +
+  annotate("text", x = special_lap_label_x, y = 41, color = jmbn["highlighter"],
+           label = "Fastest Lap", hjust = 1, size = 3.5) +
+  annotate("text", x = special_lap_label_x, y = 47, color = jmbn["rose"],
+           label = "Safety Car", hjust = 1, size = 3.5) +  
+  
+  #rec under lap number labels
   annotate("rect", xmin = 86350, xmax = 86500,
            ymin = -2, ymax = 54, fill = jmbn["hunter"], alpha = 0.5) + 
   
   #"Lap"
   annotate("text", x = 86455, y = -1, label = "Lap", 
            hjust = 1, color = jmbn["turquoise"], size = 3.5) +
-  #lap labels
+  #lap number labels
   annotate("text", x = rep.int(86455, 27), y = seq(1,53,2), 
            label = seq(1,53,2), hjust = 1, color = "white", size = 3.5) + 
   
@@ -379,9 +391,17 @@ ggplot(lt.ndv) + monza_dk_theme +
   #left axis
   geom_vline(xintercept = 86500, color = jmbn["turquoise"]) +
   
-  geom_point(aes(x = regular_milliseconds, y = lap), color = "white") + 
-  geom_line(aes(x = regular_milliseconds, y = lap), 
-            orientation = "y", color = "white")
+  #lap time points
+  geom_point(aes(x = regular_milliseconds, y = lap, color = tire_type)) + 
+  #lap time lines
+  geom_line(aes(x = regular_milliseconds, y = lap, color = tire_type), 
+            orientation = "y") + 
+  scale_color_manual(values = c("soft" = "red", "medium" = "yellow")) + 
+  #Fastest lap marker
+  geom_hline(yintercept = 41, color = jmbn["highlighter"], linetype = 2) +
+  geom_vline(xintercept = fl$milliseconds, 
+             color = jmbn["highlighter"], 
+             linetype = 2)
 
 
 names(lt.mnz)
